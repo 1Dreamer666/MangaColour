@@ -38,6 +38,7 @@ outputs/
 output/
 raw/
 qa/
+input/
 *.log
 *.tmp
 tmp/

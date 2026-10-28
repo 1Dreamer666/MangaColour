@@ -1,3 +1,5 @@
+**English** | [中文](README_ZH.md)
+
 # MangaColour
 
 **FLUX.2-powered manga colorization with reference-guided palette transfer,
@@ -29,7 +31,11 @@ This is a minimal, standalone extraction of the FLUX.2 workflow used for a
 
 ```text
 .
+├─ README.md
+├─ README_ZH.md                  # Chinese version
 ├─ config.example.json
+├─ config/
+│  └─ extra_model_paths.yaml     # portable ComfyUI model path config
 ├─ requirements.txt
 ├─ scripts/
 │  ├─ check_setup.py
@@ -38,14 +44,22 @@ This is a minimal, standalone extraction of the FLUX.2 workflow used for a
 │  ├─ make_contact_sheet.py
 │  └─ postprocess.py
 ├─ workflows/
-│  └─ flux2_manga_ui.json        # official fp8 UI reference, Apache-2.0
+│  ├─ flux2_manga_ui.json        # official fp8 UI reference, Apache-2.0
+│  └─ flux2_manga_api.example.json
 ├─ examples/
 │  ├─ sample_page.webp
 │  ├─ sample_reference.jpg
 │  └─ sample_output.png
+├─ models/                       # local portable bundle; gitignored
+├─ input/                        # local user pages; gitignored
+├─ outputs/                      # generated; gitignored
 ├─ THIRD_PARTY_NOTICES.md
 └─ LICENSE                       # AGPL-3.0
 ```
+
+`models/`, `input/`, and `outputs/` are intentionally ignored by Git. A USB
+copy should include the whole working directory, including `models/`; a plain
+`git clone` does not contain the weights.
 
 ## How it works
 
@@ -79,8 +93,10 @@ required.
 
 ## Models
 
-The scripts do not download weights automatically. Use the downloader or place
-the files manually.
+The scripts do not download weights automatically. This working copy already
+contains the four required files in the local, gitignored `models/` tree, so a
+USB copy of the whole `repo` directory is self-contained. Download only on a
+fresh clone or if a file is missing:
 
 ```powershell
 # Default destination: .\models
@@ -100,28 +116,54 @@ the files manually.
 Exact URLs are in `scripts/download_models.ps1` and
 `THIRD_PARTY_NOTICES.md`.
 
+Local portable layout:
+
+```text
+models/
+├─ diffusion_models/FLUX.2/flux-2-klein-base-9b-Q3_K_M.gguf
+├─ text_encoders/Qwen/qwen_3_8b_fp4mixed.safetensors
+├─ vae/FLUX.2/flux2-vae.safetensors
+└─ loras/FLUX.2/manga_colorization.safetensors
+```
+
 ### Making models visible to ComfyUI
 
-Use either approach:
-
-1. Let `download_models.ps1 -ModelsDir <ComfyUI>/models` write directly into the
-   four ComfyUI folders above, or copy the repository `models/` subfolders into
-   ComfyUI's `models/` directory.
-2. Add the repository `models/` folder to ComfyUI's
-   `extra_model_paths.yaml`:
+The repo includes `config/extra_model_paths.yaml`. Its `base_path` is
+`../models`, relative to the config file, so it stays valid after the whole
+folder is moved or copied to a USB drive:
 
 ```yaml
 mangacolour:
-  base_path: path/to/repo/models
+  base_path: ../models
   diffusion_models: diffusion_models
   text_encoders: text_encoders
   vae: vae
   loras: loras
 ```
 
+Launch ComfyUI with that extra config, or merge the same entry into ComfyUI's
+existing model-path config:
+
+```powershell
+python main.py --extra-model-paths-config "<path-to-repo>/config/extra_model_paths.yaml"
+```
+
+If ComfyUI is already running, add the entry to its `extra_model_paths.yaml` and
+restart. `check_setup.py` must list all four models before colorizing.
+
 The model resolver in `colorize.py` accepts basenames, so it finds files even
 when ComfyUI lists them with a subfolder such as `FLUX.2\...`. If a model is
 missing, `check_setup.py` prints the available ComfyUI choices.
+
+### Portable USB run
+
+1. Copy the **entire** `repo` directory, including ignored `models/` (about
+   11.2 GB); a `git clone` alone does not include weights.
+2. On the target PC, make sure ComfyUI, ComfyUI-GGUF, and Python dependencies
+   are installed.
+3. Launch ComfyUI with `config/extra_model_paths.yaml`, then run:
+   `python scripts/check_setup.py --config config.example.json`
+4. Run the sample or your own pages. Keep `outputs/` local; it is ignored.
 
 ## Quick start
 
