@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+config.json
+config.local.json
+
+# Model weights and large binary assets
+models/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.gguf
+*.bin
+*.onnx
+*.h5
+*.pkl
+
+# Generated outputs and logs
+outputs/
+output/
+raw/
+qa/
+*.log
+*.tmp
+tmp/
+temp/
+
+# ComfyUI / editor / OS clutter
+ComfyUI/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archives and media
+*.zip
+*.7z
+*.tar
+*.gz
+*.mp4
+*.mov
