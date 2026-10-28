@@ -241,6 +241,11 @@ It is not the Q3 GGUF path used by the 6 GB scripts.
 Source and license: see `THIRD_PARTY_NOTICES.md`. The UI workflow remains
 Apache-2.0; the repository's AGPL-3.0 does not override it.
 
+`workflows/flux2_manga_api.example.json` is a generated flat API graph for
+inspection. Its `LoadImage` names are server-side uploaded names and will differ
+on another machine; regenerate it with
+`python scripts/colorize.py ... --save-api-json workflows/my_api.json`.
+
 ## Performance notes
 
 Tested on an RTX 3060 Laptop (6 GB), ComfyUI 0.31.0, Q3 GGUF, 0.5 MP, 20 steps:
