@@ -9,9 +9,9 @@ Run from the repository root. Do not queue a colorization job until every gate p
 
 1. Install the helper dependencies:
    `python -m pip install -r requirements.txt`
-2. The portable copy should already contain the four model files under `models/`. Start ComfyUI with the repo-local path config, or merge its `mangacolour` entry into ComfyUI's existing config:
+2. The portable copy should already contain the four model files under `models/`. Start ComfyUI with the repo-local path config:
    `python main.py --extra-model-paths-config "<path-to-repo>/config/extra_model_paths.yaml"`
-   The config uses `base_path: ../models`, so it remains valid after the repo is moved.
+   The config uses `base_path: ../models`, which stays valid after the whole repo is moved. If you merge the `mangacolour` entry into another config file instead, replace `base_path` with the absolute `<repo>/models` path.
 3. Check ComfyUI, ComfyUI-GGUF, the core FLUX.2 nodes, and the four configured model names:
    `python scripts/check_setup.py --config config.example.json`
    Add `--comfyui-url <url>` if ComfyUI is not on the configured URL, and use that same URL for the run.

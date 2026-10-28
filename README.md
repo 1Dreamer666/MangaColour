@@ -149,7 +149,10 @@ python main.py --extra-model-paths-config "<path-to-repo>/config/extra_model_pat
 ```
 
 If ComfyUI is already running, add the entry to its `extra_model_paths.yaml` and
-restart. `check_setup.py` must list all four models before colorizing.
+restart. `base_path: ../models` is only correct while this YAML stays in
+`repo/config`; if you merge the entry into another config file, replace it with
+the absolute path to `<repo>/models`. `check_setup.py` must list all four models
+before colorizing.
 
 The model resolver in `colorize.py` accepts basenames, so it finds files even
 when ComfyUI lists them with a subfolder such as `FLUX.2\...`. If a model is

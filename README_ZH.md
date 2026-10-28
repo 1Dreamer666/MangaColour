@@ -126,7 +126,7 @@ python main.py --extra-model-paths-config "<path-to-repo>/config/extra_model_pat
 ```
 
 如果 ComfyUI 已经在运行，把同样的 `mangacolour` 配置合并到它现有的
-`extra_model_paths.yaml`，重启后再运行 `check_setup.py`。只有四个模型都出现在检查结果里，才继续上色。
+`extra_model_paths.yaml`，重启后再运行 `check_setup.py`。注意：只有这个 YAML 留在 `repo/config` 时，`base_path: ../models` 才是正确的；如果把条目合并到其它位置的配置文件，必须改成 `<repo>/models` 的绝对路径。只有四个模型都出现在检查结果里，才继续上色。
 
 `colorize.py` 的模型解析使用 basename，所以 ComfyUI 显示成
 `FLUX.2\...` 这样的子目录也能找到。模型缺失时，`check_setup.py` 会打印 ComfyUI 实际可用的模型列表。
