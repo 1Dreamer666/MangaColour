@@ -14,7 +14,7 @@ stay sharp.
 This is a minimal, standalone extraction of the FLUX.2 workflow used for a
 33-page colorization run. It is not a fork of the original MangaNinja project.
 
-![sample](examples/sample_output.png)
+![sample](examples/sample_comparison.png)
 
 ## Features
 
@@ -49,7 +49,8 @@ This is a minimal, standalone extraction of the FLUX.2 workflow used for a
 ├─ examples/
 │  ├─ sample_page.webp
 │  ├─ sample_reference.jpg
-│  └─ sample_output.png
+│  ├─ sample_output.png
+│  └─ sample_comparison.png
 ├─ models/                       # local portable bundle; gitignored
 ├─ input/                        # local user pages; gitignored
 ├─ outputs/                      # generated; gitignored

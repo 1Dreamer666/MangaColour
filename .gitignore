@@ -20,6 +20,7 @@ ENV/
 !.env.example
 config.json
 config.local.json
+run_*.py
 
 # Model weights and large binary assets
 models/

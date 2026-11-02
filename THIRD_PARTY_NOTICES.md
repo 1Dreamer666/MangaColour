@@ -49,8 +49,8 @@ of an official ComfyUI workflow. Model weights are **not** included.
 
 ## Sample assets
 
-`examples/sample_page.webp`, `examples/sample_reference.jpg`, and
-`examples/sample_output.png` are demonstration assets supplied for this project.
+`examples/sample_page.webp`, `examples/sample_reference.jpg`,
+`examples/sample_output.png`, and `examples/sample_comparison.png` are demonstration assets supplied for this project.
 Character and artwork rights remain with their original rights holders. These
 assets are not relicensed under AGPL-3.0; replace them before redistributing the
 repository for a different purpose.

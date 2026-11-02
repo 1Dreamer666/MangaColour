@@ -3,6 +3,7 @@
 - `sample_page.webp` - grayscale demonstration input (1081 x 1600)
 - `sample_reference.jpg` - color reference sheet (763 x 1005)
 - `sample_output.png` - full-resolution composite produced by this repository
+- `sample_comparison.png` - comparison banner (reference | line art | colorized) used in README
 
 The sample character artwork is supplied for demonstration only. Character and
 artwork rights remain with their original rights holders. The sample assets are

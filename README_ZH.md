@@ -7,7 +7,7 @@
 MangaColour 接收一张黑白漫画页（或插画）和一张彩色参考图，输出原图分辨率的彩色页。扩散模型只负责低分辨率色度层；最终结果保留原始全分辨率 **L 通道**（线稿、文字、网点、气泡边框），所以线条不会被模型重绘糊掉。
 
 
-![样例](examples/sample_output.png)
+![样例](examples/sample_comparison.png)
 
 ## 特性
 
@@ -41,7 +41,8 @@ MangaColour 接收一张黑白漫画页（或插画）和一张彩色参考图�
 ├─ examples/
 │  ├─ sample_page.webp
 │  ├─ sample_reference.jpg
-│  └─ sample_output.png
+│  ├─ sample_output.png
+│  └─ sample_comparison.png
 ├─ models/                       # 本地模型包；Git 忽略
 ├─ input/                        # 本地输入页；Git 忽略
 ├─ outputs/                      # 运行输出；Git 忽略
