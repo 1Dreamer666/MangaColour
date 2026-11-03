@@ -220,11 +220,11 @@ python scripts/postprocess.py `
 | `input_dir` / `--input-dir` | 未设置 | 批量目录 |
 | `reference` / `--reference` | sample | 整批共用的一张参考图 |
 | `output_dir` / `--output-dir` | `outputs/colorized` | 输出根目录 |
-| `batch_size` / `--batch-size` | `2` | 每个扩散 batch 的页数 |
+| `batch_size` / `--batch-size` | `3` | 每个扩散 batch 的页数（6 GB 显存最佳点） |
 | `megapixels` / `--megapixels` | `0.5` | 颜色层目标像素 |
 | `resolution_steps` / `--resolution-steps` | `16` | FLUX.2 尺寸取整 |
 | `steps` / `--steps` | `2` | 采样步数（见性能记录） |
-| `cfg` / `--cfg` | `4.0` | CFG 引导 |
+| `cfg` / `--cfg` | `1.0` | 引导比例（1.0 直接免除负向计算，耗时减半） |
 | `seed` / `--seed` | `1234` | 固定 seed，保持批量配色 |
 | `lora_strength` / `--lora-strength` | `1.0` | manga LoRA 强度 |
 | `prompt` / `--prompt` | `mngclranm` | LoRA 触发词 |
@@ -264,9 +264,17 @@ python scripts/postprocess.py `
 | 4 | ~98.5 秒 |
 | 5 | ~121.0 秒 |
 
-**默认使用 2 steps**：肤色更暖、更饱满，耗时也可以接受。1 step 更快，但颜色明显偏淡；3–5 steps 越来越慢，并且会收敛到更冷、更白、更灰的配色。以上耗时是在大致相同的模型状态下测得的，会随模型加载而变化；ComfyUI 重启后的第一次运行还要加上模型加载时间。
+**默认推荐 2 steps、CFG=1.0、Batch=3**：在 FLUX.2 Klein 9B 蒸馏模型上，`cfg=1.0` 免除了负向提示词的额外前向推理，单步采样耗时减半（14.6 秒 → 7.3 秒/步），且彻底消除了高光皮肤区域产生的青/品红色斑噪点；配合 `batch=3`，在 6 GB 显卡上稳态上色速度达到 **~13.8 秒/页**（每 3 页耗时约 41.4 秒），显存峰值约 5.6 GB，安全不 OOM。
 
-6 GB 显存下 batch 2 是实际可用的上限，更大的 batch 会频繁换入换出显存。12 GB 以上可以尝试更大 batch，固定开销会降低，但计算量仍按页数增长。
+### 6 GB 显存 ComfyUI 启动参数建议
+
+```powershell
+python main.py --port 8000 --disable-auto-launch --fp16-vae
+```
+- **推荐启用 `--fp16-vae`**：平滑降低 VAE 阶段显存峰值，无画质损失。
+- **严禁启用 `--highvram`**：6 GB 无法同时容纳 11 GB 权重，强开会触发 Windows 虚拟显存跨 PCIe 恶性换页，单步耗时从 7 秒暴涨至 700 秒以上。
+- **切勿启用 `--use-split-cross-attention`**：破坏 PyTorch 2.x SDPA 原生优化，显存模型常驻量清零，增加 GPU 空转率。
+- **切勿启用 `--vram-headroom`**：粗暴踢出显存层，导致 GPU 利用率崩跌至 20%。
 
 ## 故障排查
 

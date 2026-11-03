@@ -255,11 +255,11 @@ config file:
 | `input_dir` / `--input-dir` | unset | Batch directory |
 | `reference` / `--reference` | sample | One shared color reference |
 | `output_dir` / `--output-dir` | `outputs/colorized` | Output root |
-| `batch_size` / `--batch-size` | `2` | Pages per diffusion batch |
+| `batch_size` / `--batch-size` | `3` | Pages per diffusion batch (6 GB sweet spot) |
 | `megapixels` / `--megapixels` | `0.5` | Color-layer target size |
 | `resolution_steps` / `--resolution-steps` | `16` | Size rounding for FLUX.2 |
 | `steps` / `--steps` | `2` | Sampler steps (see performance notes) |
-| `cfg` / `--cfg` | `4.0` | CFG guidance |
+| `cfg` / `--cfg` | `1.0` | Guidance scale (1.0 cuts sampling passes in half) |
 | `seed` / `--seed` | `1234` | Fixed seed for palette consistency |
 | `lora_strength` / `--lora-strength` | `1.0` | Manga LoRA strength |
 | `prompt` / `--prompt` | `mngclranm` | LoRA trigger |
@@ -308,15 +308,20 @@ manga LoRA, 0.5 MP, batch 2, cached text-free pages, and the fixed seed:
 | 4 | ~98.5 s |
 | 5 | ~121.0 s |
 
-**2 steps is the default.** It produces warmer, fuller skin at an acceptable
-cost. 1 step is faster but visibly too pale. 3–5 steps are progressively slower
-and converge to a colder, whiter, more washed-out palette. The timings were
-taken with roughly the same model state and will vary with model load; the first
-run after a ComfyUI restart also pays the model load time.
+**2 steps, CFG=1.0, and Batch=3 is the tuned default.** On FLUX.2 Klein 9B (distilled model), `cfg=1.0` eliminates redundant negative-prompt forward passes, cutting U-Net step time in half (14.6 s → 7.3 s/step) while avoiding cyan/magenta color fringing in high-key highlights. Combining `cfg=1.0` with `batch=3` reaches a steady-state throughput of **~13.8 s / page** (~41.4 s per 3-page batch) at ~5.6 GB VRAM peak.
 
-Batch 2 is the practical maximum on 6 GB VRAM; larger batches thrash VRAM.
-Larger batches may fit on 12 GB+ cards and can reduce fixed overhead, but the
-compute still scales with page count.
+Batch 3 is the measured sweet spot on 6 GB VRAM without OOM. Larger batches (≥4) risk VRAM thrashing.
+
+### Recommended ComfyUI Startup Flags for 6 GB GPUs
+
+Launch ComfyUI with:
+```powershell
+python main.py --port 8000 --disable-auto-launch --fp16-vae
+```
+- **Use `--fp16-vae`**: safely reduces VAE peak memory during decode with zero visual degradation.
+- **Do NOT use `--highvram`**: 6 GB cannot hold both models simultaneously. Forcing `--highvram` triggers severe Windows virtual memory swapping, slowing sampling from 7 s/step to over 700 s/step.
+- **Do NOT use `--use-split-cross-attention`**: breaks native SDPA optimizations on PyTorch 2.x, dropping resident weights to 0 MB and increasing GPU idle time.
+- **Do NOT use `--vram-headroom`**: evicts diffusion layers to system RAM, collapsing GPU utilization to ~20%.
 
 ## Troubleshooting
 

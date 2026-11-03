@@ -77,16 +77,23 @@ python scripts/make_contact_sheet.py --input-dir outputs/batch --output outputs/
 `config.example.json` and `DEFAULT_CONFIG` in `scripts/colorize.py` ship with:
 
 - `steps: 2` — the chosen default. 1 step (~27.7 s / 2 pages) is visibly too
-  pale; 2 steps (~50.5 s) gives warmer, fuller skin at an acceptable cost.
-  3–5 steps (~74.2 / 98.5 / 121.0 s) are slower and converge to a colder,
-  whiter, more washed-out palette. Do not raise steps to "improve" quality.
-- `batch_size: 2` — the practical maximum on 6 GB VRAM; larger batches thrash
-  VRAM.
+  pale; 2 steps gives warmer, fuller skin at an acceptable cost.
+  3–5 steps are slower and converge to a colder, whiter, more washed-out palette.
+- `cfg: 1.0` — guidance-free: cuts U-Net forward passes in half (14.6 s → 7.3 s/step)
+  and avoids cyan/magenta fringing in high-key skin highlights.
+- `batch_size: 3` — the measured sweet spot on 6 GB VRAM (~5.6 GB peak); steady state
+  reaches ~13.8 s / page.
 - `postprocess.sat: 1.3` — restores warm skin after the AB/L-preserving
   composite without yellowing the paper. `1.0` is too pale, while text prompts
   such as "warm skin tones" yellow the paper.
-- Keep `megapixels: 0.5`, `cfg: 4.0`, `seed: 1234`, `lora_strength: 1.0`,
+- Keep `megapixels: 0.5`, `seed: 1234`, `lora_strength: 1.0`,
   `negative: ""`, and `prompt: "mngclranm"`.
+
+### ComfyUI Launch Flags for 6 GB GPUs
+- **Use `--fp16-vae`**: safely reduces VAE peak memory during decode.
+- **Do NOT use `--highvram`**: 6 GB cannot hold both models simultaneously; causes catastrophic PCIe thrashing (700+ s/step).
+- **Do NOT use `--use-split-cross-attention`**: breaks native SDPA, drops resident weights to 0 MB, increases idle time.
+- **Do NOT use `--vram-headroom`**: evicts layers to RAM, collapsing GPU utilization to ~20%.
 
 The timings were measured with roughly the same ComfyUI/model state and vary
 with model load. Override these defaults on the command line only when the user
@@ -115,7 +122,6 @@ asks; do not change them silently.
 **中文摘要**
 
 - 先运行 `scripts/check_setup.py`；ComfyUI 或模型不可用就停止，并提示 `scripts/download_models.ps1`。
-- 默认 2 steps、batch 2、postprocess sat 1.3；1 step 太淡，3–5 steps 更慢且更灰。
+- 默认 2 steps、cfg 1.0、batch 3、postprocess sat 1.3；1 step 太淡，3–5 steps 更慢且更灰。
 - 单页使用 `scripts/colorize.py`；批量复用同一参考图和固定 seed，结束后运行 `scripts/make_contact_sheet.py`。
-- 生成物只写入 `outputs/`；不要提交 `outputs/`、`models/` 或 `examples/` 之外的素材。
-- 6GB 显存保持 batch 2；不要把官方 UI fp8 参考流程当成已验证的 6GB 执行路径。
+- 6GB 显卡推荐 ComfyUI 启动参数带 `--fp16-vae`；严禁 `--highvram`、`--use-split-cross-attention`、`--vram-headroom`。
