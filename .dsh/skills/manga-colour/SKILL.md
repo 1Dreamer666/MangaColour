@@ -44,7 +44,7 @@ That command performs the pipeline in order:
 For a manual recomposition from the downloaded raw layer only:
 
 ```powershell
-python scripts/postprocess.py --original examples/sample_page.webp --color outputs/single/raw/sample_page.png --output outputs/single/sample_page_manual.png --radius 2 --sat 1.0 --white-threshold 256
+python scripts/postprocess.py --original examples/sample_page.webp --color outputs/single/raw/sample_page.png --output outputs/single/sample_page_manual.png --radius 2 --sat 1.3 --white-threshold 256
 ```
 
 Do not run `scripts/postprocess.py` on the already composited final image; it expects the raw model color layer.
@@ -72,18 +72,50 @@ python scripts/make_contact_sheet.py --input-dir outputs/batch --output outputs/
 
 `scripts/make_contact_sheet.py` reads `*.png` directly in the input directory; point it at the directory containing final pages, not at the `raw/` or `qa/` subdirectories.
 
-## 4. Hard constraints
+## 4. Current tuned defaults
+
+`config.example.json` and `DEFAULT_CONFIG` in `scripts/colorize.py` ship with:
+
+- `steps: 2` — the chosen default. 1 step (~27.7 s / 2 pages) is visibly too
+  pale; 2 steps (~50.5 s) gives warmer, fuller skin at an acceptable cost.
+  3–5 steps (~74.2 / 98.5 / 121.0 s) are slower and converge to a colder,
+  whiter, more washed-out palette. Do not raise steps to "improve" quality.
+- `batch_size: 2` — the practical maximum on 6 GB VRAM; larger batches thrash
+  VRAM.
+- `postprocess.sat: 1.3` — restores warm skin after the AB/L-preserving
+  composite without yellowing the paper. `1.0` is too pale, while text prompts
+  such as "warm skin tones" yellow the paper.
+- Keep `megapixels: 0.5`, `cfg: 4.0`, `seed: 1234`, `lora_strength: 1.0`,
+  `negative: ""`, and `prompt: "mngclranm"`.
+
+The timings were measured with roughly the same ComfyUI/model state and vary
+with model load. Override these defaults on the command line only when the user
+asks; do not change them silently.
+
+## 5. Troubleshooting
+
+- **Sampler crashes with `OSError: [Errno 22] Invalid argument` from tqdm:**
+  ComfyUI's inherited stdout pipe is dead. Restart ComfyUI with stdout/stderr
+  redirected to a log file, for example `python main.py ... > comfyui.log 2>&1`,
+  instead of leaving them on an inherited pipe. Do not work around it by
+  changing `steps`.
+- **Output is gray:** the `mngclranm` trigger was removed or replaced. Restore
+  it; an empty prompt degrades toward gray.
+
+## 6. Hard constraints
 
 - Never commit `outputs/`, `input/`, or `models/`; all three are ignored. Keep generated finals, raw layers, QA images, logs, and summaries under `outputs/`.
 - Use only the checked-in demo assets under `examples/` for repository examples: `examples/sample_page.webp`, `examples/sample_reference.jpg`, and `examples/sample_output.png`. Do not add external manga pages or references to `examples/` or to a commit.
 - Do not commit or upload model weights or LoRA files. They live in the gitignored local `models/` tree and must be copied with the portable USB bundle; do not publish them. Use `scripts/download_models.ps1` on a fresh clone or when a file is missing.
 - Do not commit secrets, tokens, or absolute paths. Prefer `config.example.json` and command-line overrides.
+- Keep `mngclranm` in `prompt`; the LoRA was trained with that trigger and an empty prompt comes out gray.
 - Do not modify `workflows/flux2_manga_ui.json`; it is the official Apache-2.0 fp8 reference. The 6 GB execution path is the Q3 GGUF API script.
 - Do not claim a successful run if `scripts/check_setup.py` fails, ComfyUI is offline, or the expected final and QA files are missing. Report the blocker and list the static checks that were completed.
 
 **中文摘要**
 
 - 先运行 `scripts/check_setup.py`；ComfyUI 或模型不可用就停止，并提示 `scripts/download_models.ps1`。
+- 默认 2 steps、batch 2、postprocess sat 1.3；1 step 太淡，3–5 steps 更慢且更灰。
 - 单页使用 `scripts/colorize.py`；批量复用同一参考图和固定 seed，结束后运行 `scripts/make_contact_sheet.py`。
 - 生成物只写入 `outputs/`；不要提交 `outputs/`、`models/` 或 `examples/` 之外的素材。
 - 6GB 显存保持 batch 2；不要把官方 UI fp8 参考流程当成已验证的 6GB 执行路径。

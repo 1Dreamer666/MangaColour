@@ -240,7 +240,7 @@ python scripts/postprocess.py `
   --original page.webp `
   --color raw.png `
   --output final.png `
-  --radius 2 --sat 1.0 --white-threshold 256
+  --radius 2 --sat 1.3 --white-threshold 256
 ```
 
 ## Configuration and parameters
@@ -255,21 +255,24 @@ config file:
 | `input_dir` / `--input-dir` | unset | Batch directory |
 | `reference` / `--reference` | sample | One shared color reference |
 | `output_dir` / `--output-dir` | `outputs/colorized` | Output root |
-| `batch_size` / `--batch-size` | `1` (example) | Pages per diffusion batch |
+| `batch_size` / `--batch-size` | `2` | Pages per diffusion batch |
 | `megapixels` / `--megapixels` | `0.5` | Color-layer target size |
 | `resolution_steps` / `--resolution-steps` | `16` | Size rounding for FLUX.2 |
-| `steps` / `--steps` | `20` | Sampler steps |
+| `steps` / `--steps` | `2` | Sampler steps (see performance notes) |
 | `cfg` / `--cfg` | `4.0` | CFG guidance |
 | `seed` / `--seed` | `1234` | Fixed seed for palette consistency |
 | `lora_strength` / `--lora-strength` | `1.0` | Manga LoRA strength |
 | `prompt` / `--prompt` | `mngclranm` | LoRA trigger |
 | `timeout` / `--timeout` | `3600` | Per-batch wait timeout, seconds |
 | `postprocess.radius` | `2` | Guided-filter radius |
-| `postprocess.sat` | `1.0` | Chroma saturation |
+| `postprocess.sat` | `1.3` | Chroma saturation |
 | `postprocess.white_threshold` | `256.0` | `256` disables paper/bubble cleanup |
 | `postprocess.neutral_mask` | `false` | Optional neutral-pixel cleanup |
 
 `--save-api-json path.json` saves the generated flat API graph for inspection.
+
+Keep the `mngclranm` trigger in `prompt`. The LoRA was trained with it, and an
+empty prompt degrades toward gray.
 
 ## UI workflow
 
@@ -294,17 +297,26 @@ on another machine; regenerate it with
 
 ## Performance notes
 
-Tested on an RTX 3060 Laptop (6 GB), ComfyUI 0.31.0, Q3 GGUF, 0.5 MP, 20 steps:
+Measured on an RTX 3060 Laptop (6 GB), ComfyUI with FLUX.2 Klein 9B Q3 GGUF +
+manga LoRA, 0.5 MP, batch 2, cached text-free pages, and the fixed seed:
 
-- batch 2: **8.4–9.4 min / 2 pages**, about **4.2–4.7 min/page**
-- single page: about 5–6 min including model load; final single batch 5.3 min
-- 1 MP single page: about 11.6 min
-- 8-page batch: did not crash, but after about 41 minutes it had no output;
-  ComfyUI reported `0.00 MB usable, 0.00 MB loaded, 4740.54 MB offloaded` and
-  was thrashing weights from CPU. The test was aborted. Batch 2 is the practical
-  setting on 6 GB.
-- Larger batches may fit on 12 GB+ cards and can reduce fixed overhead, but the
-  compute still scales with page count.
+| Steps | Time / 2 pages |
+|---:|---:|
+| 1 | ~27.7 s |
+| 2 | ~50.5 s **(default)** |
+| 3 | ~74.2 s |
+| 4 | ~98.5 s |
+| 5 | ~121.0 s |
+
+**2 steps is the default.** It produces warmer, fuller skin at an acceptable
+cost. 1 step is faster but visibly too pale. 3–5 steps are progressively slower
+and converge to a colder, whiter, more washed-out palette. The timings were
+taken with roughly the same model state and will vary with model load; the first
+run after a ComfyUI restart also pays the model load time.
+
+Batch 2 is the practical maximum on 6 GB VRAM; larger batches thrash VRAM.
+Larger batches may fit on 12 GB+ cards and can reduce fixed overhead, but the
+compute still scales with page count.
 
 ## Troubleshooting
 
@@ -327,6 +339,12 @@ is writable.
 **OOM or extremely slow sampling**
 Use `--batch-size 1` or `2`, keep `--megapixels 0.5`, close other GPU programs,
 and restart ComfyUI between long runs if VRAM becomes fragmented.
+
+**Sampler crashes with `OSError: [Errno 22] Invalid argument` from tqdm**
+ComfyUI's inherited stdout pipe is dead. Restart ComfyUI with stdout/stderr
+redirected to a log file, for example `python main.py ... > comfyui.log 2>&1`,
+instead of leaving them on an inherited pipe. Do not work around this by
+changing `steps`.
 
 **Text or bubbles are tinted**
 The default composite has paper/bubble cleanup disabled. Try

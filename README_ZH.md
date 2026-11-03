@@ -206,7 +206,7 @@ python scripts/postprocess.py `
   --original page.webp `
   --color raw.png `
   --output final.png `
-  --radius 2 --sat 1.0 --white-threshold 256
+  --radius 2 --sat 1.3 --white-threshold 256
 ```
 
 ## 配置与参数
@@ -220,21 +220,23 @@ python scripts/postprocess.py `
 | `input_dir` / `--input-dir` | 未设置 | 批量目录 |
 | `reference` / `--reference` | sample | 整批共用的一张参考图 |
 | `output_dir` / `--output-dir` | `outputs/colorized` | 输出根目录 |
-| `batch_size` / `--batch-size` | `1`（示例） | 每个扩散 batch 的页数 |
+| `batch_size` / `--batch-size` | `2` | 每个扩散 batch 的页数 |
 | `megapixels` / `--megapixels` | `0.5` | 颜色层目标像素 |
 | `resolution_steps` / `--resolution-steps` | `16` | FLUX.2 尺寸取整 |
-| `steps` / `--steps` | `20` | 采样步数 |
+| `steps` / `--steps` | `2` | 采样步数（见性能记录） |
 | `cfg` / `--cfg` | `4.0` | CFG 引导 |
 | `seed` / `--seed` | `1234` | 固定 seed，保持批量配色 |
 | `lora_strength` / `--lora-strength` | `1.0` | manga LoRA 强度 |
 | `prompt` / `--prompt` | `mngclranm` | LoRA 触发词 |
 | `timeout` / `--timeout` | `3600` | 单个 batch 等待超时（秒） |
 | `postprocess.radius` | `2` | guided filter 半径 |
-| `postprocess.sat` | `1.0` | 色度饱和度 |
+| `postprocess.sat` | `1.3` | 色度饱和度 |
 | `postprocess.white_threshold` | `256.0` | `256` 表示关闭纸张/气泡清理 |
 | `postprocess.neutral_mask` | `false` | 可选的中性像素清理 |
 
 `--save-api-json path.json` 可以保存生成的 API 图，便于检查。
+
+`prompt` 必须保留 `mngclranm` 触发词。LoRA 是用它训练的，空 prompt 会偏向灰色。
 
 ## UI 工作流
 
@@ -252,14 +254,19 @@ python scripts/postprocess.py `
 
 ## 性能记录
 
-测试环境：RTX 3060 Laptop 6 GB、ComfyUI 0.31.0、Q3 GGUF、0.5 MP、20 steps：
+测试环境：RTX 3060 Laptop 6 GB、ComfyUI、FLUX.2 Klein 9B Q3 GGUF + manga LoRA、0.5 MP、batch 2、已缓存的无文字页面、固定 seed：
 
-- batch 2：**8.4–9.4 分钟 / 2 页**，约 **4.2–4.7 分钟/页**
-- 单页：约 5–6 分钟（含模型加载）；最后一次单页 5.3 分钟
-- 1 MP 单页：约 11.6 分钟
-- 8 页 batch：没有崩溃，但 41 分钟后仍无输出；日志显示
-  `0.00 MB usable, 0.00 MB loaded, 4740.54 MB offloaded`，权重在 CPU/GPU 之间抖动，已中止。6 GB 显存建议 batch 2。
-- 12 GB 以上可以尝试更大 batch，但计算量仍按页数增长。
+| 步数 | 2 页耗时 |
+|---:|---:|
+| 1 | ~27.7 秒 |
+| 2 | ~50.5 秒 **（默认）** |
+| 3 | ~74.2 秒 |
+| 4 | ~98.5 秒 |
+| 5 | ~121.0 秒 |
+
+**默认使用 2 steps**：肤色更暖、更饱满，耗时也可以接受。1 step 更快，但颜色明显偏淡；3–5 steps 越来越慢，并且会收敛到更冷、更白、更灰的配色。以上耗时是在大致相同的模型状态下测得的，会随模型加载而变化；ComfyUI 重启后的第一次运行还要加上模型加载时间。
+
+6 GB 显存下 batch 2 是实际可用的上限，更大的 batch 会频繁换入换出显存。12 GB 以上可以尝试更大 batch，固定开销会降低，但计算量仍按页数增长。
 
 ## 故障排查
 
@@ -279,6 +286,9 @@ python scripts/postprocess.py `
 
 **显存不足或采样极慢**
 使用 `--batch-size 1` 或 `2`，保持 `--megapixels 0.5`，关闭其他 GPU 程序；长时间运行后可重启 ComfyUI 释放碎片化显存。
+
+**采样器报 `OSError: [Errno 22] Invalid argument`（来自 tqdm）**
+这是 ComfyUI 继承的 stdout 管道已经失效，不是采样器本身的问题。重启 ComfyUI，并把 stdout/stderr 重定向到日志文件（例如 `python main.py ... > comfyui.log 2>&1`），不要继续使用继承的管道。不要靠修改 `steps` 来绕过。
 
 **文字或气泡被染色**
 默认关闭纸张/气泡清理。可以尝试
